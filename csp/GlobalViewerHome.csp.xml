@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<CSP name="GlobalViewerHome.csp" application="/csp/glview/" default="1"><![CDATA[
+<html ng-app="myApp">
+<head>
+    <meta charset="utf-8" />
+    <title>Cache Global Viewer:Home</title>
+    
+    <link href="http://netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="ng-grid.css" />
+	<link rel="stylesheet" type="text/css" href="GVstyle.css" />
+    <script type="text/javascript" src="jquery-2.0.3.min.js"></script>
+    <script type="text/javascript" src="http://angular-ui.github.com/ng-grid/lib/jquery-ui-1.9.1.custom.min.js"></script>
+    <script type="text/javascript" src="jquery.layout-latest.min.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.1.5/angular.min.js"></script>
+    <script type="text/javascript" src="http://angular-ui.github.com/ng-grid/lib/bootstrap/js/bootstrap.js"></script>
+	<script type="text/javascript" src="ng-grid-layout.js"></script>
+    <script type="text/javascript" src="http://angular-ui.github.com/ng-grid/lib/ng-grid.debug.js"></script>
+    <script src="globs.js"></script>
+    
+	  
+
+</head>
+
+<body ng-controller="globsCtrl" ng-init="getGlobs('DEV')">
+<table class="uiadds"><tr style="height:2em;"><td><span style="margin:5px;">Редактор глобалов</span>
+</td></tr>
+<tr style="width:100%;height:auto;" ><td id="mainUI">
+		
+		<div class="ui-layout-center">
+				<div  ng-grid="gridOptions2"  style="position: absolute;  left: 0; right: 0; top: 0; bottom: 0; overflow: hidden"></div>	
+			</div>
+			
+		<div class="ui-layout-south">
+			<div style="width:100%;height:100%;top:0;left:0;bottom:10px;right:0;" >
+ 			<table style="padding:5px;width:100%" ><tr><td>
+ 			<label >Page Size: 
+ 				<input ng-model="pagingOptions.pageSize" type="text">
+ 			</label>
+ 			</td><td>
+ 			<label>Items:{{pagingOptions.pageSize*(pagingOptions.currentPage-1)+1}} - {{(pagingOptions.pageSize*pagingOptions.currentPage>curPath.nodes)?curPath.nodes:pagingOptions.pageSize*pagingOptions.currentPage}} from {{curPath.nodes}}</label>
+ 			{{globData}}
+ 			<button type="button" class="btn btn-warning" id="saveChanges" style="display:none;">Save Changes</button>
+ 			</td>
+ 			<td>
+ 			
+ 				<ul class="pager">
+					<li><a ng-click="changePage(-1)">Previous</a></li>
+  					<li><a ng-click="changePage(1)">Next</a></li>
+				</ul>
+ 				
+ 			</td>
+ 			</tr></table>
+ 			</div>
+ 			
+ 		</div>
+		<div class="ui-layout-west">
+	<div class="dropdown" ng-init="getNSs()">
+  					<!-- Link or button to toggle dropdown -->
+  					<a class="dropdown-toggle" data-toggle="dropdown" href="#" style="padding:5px;">Namespace:{{curPath.ns}}</a>
+  					<ul class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu">
+   					<li ng-repeat="ns in NSs"><a tabindex="-1" ng-click="changeNS('{{ns}}')">{{ns}}</a></li>
+  					</ul>
+				</div>
+ 			<div ng-grid="gridOptions"  style="position: absolute;  left: 0; right: 0; top: 30px; bottom: 0; overflow: hidden"></div>	
+			
+ 		</div>
+	</td>
+	</tr></table>
+    </body></html>
+
+]]></CSP>
+</Export>

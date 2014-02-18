@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<CSP name="js/main.js" application="/csp/glview/" default="1"><![CDATA[
+/*
+======================Initiallize Function======================
+*/
+$(document).ready(function(){
+
+	
+	$('#mycontainer').layout({
+		togglerContent:"",
+		south__minSize: 80,
+		north__minSize: 20,
+		east__minSize: 120,
+		west__onresize: function(){
+			globListGrid.resizeCanvas();
+			},
+		center__onresize: function(){
+			nodesListGrid.resizeCanvas();
+		}
+		});
+	getNS();
+	$("#pageSize").on( "change", onPageSizeChanged );
+	//setInterval(getPathChanges,100);
+	$("#nodesGrid").off("keydown");
+	$(document).keyup(KeyUpHandler);
+	$("#nodeTextArea").keydown(KeyUpHandlerForTA);
+	$("#breadcrumbs").on("keydown", breadcrumbsSubmitHandler);
+
+	window.onresize=function() {
+	$('#mycontainer').layout().resizeAll();
+	nodesListGrid.resizeCanvas();
+};
+
+	$(document).bind("ajaxSend", function() {
+		$("#loading").show();
+	}).bind("ajaxComplete", function(){
+		$("#loading").hide();
+	});
+
+	$('#myTab a').click(function (e) {
+  	e.preventDefault()
+  	$(this).tab('show',400)
+	});
+	
+});]]></CSP>
+</Export>

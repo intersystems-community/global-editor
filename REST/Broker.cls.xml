@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<Class name="REST.Broker">
+<Description><![CDATA[
+*******************************************************
+использованы материалы с мероприятия
+some part of this source code getting from
+InterSystems Global Summit 2013 
+"Building Mobile Applications with RESTful Interfaces" 
+by Chris Carmichael and Oliver Caudron
+*******************************************************
+Пока я не знаю до конца что он делает
+После компиляции работает по адресу
+<a href = "http://localhost:57773/rest/test">http://localhost:57773/rest/test</a>]]></Description>
+<Super>%CSP.REST</Super>
+<TimeCreated>62999,56505.766013</TimeCreated>
+
+<UDLText name="T">
+<Content><![CDATA[
+/* видимо отрабатываем  URL test и вызываем метод test
+ точнее Это карта размещения типа слушателя Listen в Apache или скорее аналог urls.py в django */
+]]></Content>
+</UDLText>
+
+<XData name="UrlMap">
+<Data><![CDATA[
+<Routes>
+   <Route Url="/test" Method="GET" Call="REST.Broker:Test"/>
+   <Route Url="/json/glob/:method" Method="GET" Call="REST.JSON:Router"/>
+   <Route Url="/json/update/" Method="POST" Call="REST.JSON:UpdateGlobData"/>
+   
+   <Route Url="/json/namespaces/" Method="GET" Call="REST.JSON:GetNames"/>
+   <Route Url="/json/drilldown/:glob/:ns/:page/:pagesize" Method="GET" Call="REST.JSON:GetGlobLevel"/>
+   <Route Url="/json/globSize/:glob/:ns" Method="GET" Call="REST.JSON:GetGlobSize"/>
+   <Route Url="/json/updateGlobData/:glob/:ns/:val" Method="GET" Call="REST.JSON:UpdateGlobData"/>
+ </Routes>
+]]></Data>
+</XData>
+
+<UDLText name="T">
+<Content><![CDATA[
+// переназначим реакцию на отсутствующую страницу
+
+]]></Content>
+</UDLText>
+
+<Method name="Http404">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%Status</ReturnType>
+<Implementation><![CDATA[
+	&html<<h1>404: Page not found</h1>>
+	&html<<p>Cache REST service: Broker</p>>
+	quit $$$OK
+]]></Implementation>
+</Method>
+</Class>
+</Export>

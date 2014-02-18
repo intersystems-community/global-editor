@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<CSP name="index.html" application="/csp/glview/" default="1"><![CDATA[
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Cache Global Editor</title>
+  
+	<link rel="stylesheet" type="text/css" href="css/main.css" />
+  <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css" />
+  <link rel="stylesheet" type="text/css" href="css/slick.grid.css" />
+
+</head>
+
+<body>
+
+
+<div id="mycontainer">
+		
+	<div class="pane ui-layout-center">
+    <div id="nodesGrid" tabindex="1"> 
+    </div>  
+	</div>
+
+
+	<div class="pane ui-layout-north" id="navpanel" style="padding:15px;">
+    
+    <div id="breadcrumbs" style="font-weight:bold" contentEditable style="text-wrap:off">Choose your namespace</div>
+    <p style="margin:0" class="text-info">Showing items:<span id="startNum"></span> - <span id="endNum"></span></p>
+    <p style="margin:0" class="text-info">Total items in global:<span id="totalNodes"></span></p>
+    
+    
+  </div>	
+
+
+<div class="pane ui-layout-south">
+  <img class="logo" src="img/logo.png"/>
+  
+
+  <ul class="nav nav-tabs" id="myTab">
+  <li class="active"><a href="#home">Text Editor</a></li>
+  <li><a href="#profile">Search Results</a></li>
+  <li><a href="#messages">Logs</a></li>
+  </ul>
+
+
+  <div class="tab-content" style="width:100%">
+  <div class="tab-pane active" id="home">
+    <textarea class="form-control" id="nodeTextArea"  wrap="off" rows="1">
+    </textarea>
+  </div>
+  <div class="tab-pane" id="profile">...</div>
+  <div class="tab-pane" id="messages">...</div>
+  </div>
+
+ 
+  
+</div>
+
+
+<div class="pane ui-layout-east">
+      <!-- ##############     Menu   ############ -->
+      
+      <div class="pager">
+        <span onclick="changePage(-1)" class="glyphicon glyphicon-arrow-left"></span>
+        <span onclick="changePage(1)" class="glyphicon glyphicon-arrow-right"></span>
+      </div>
+
+       <button type="button" class="btn btn-default btn-sm btn-block" onclick="showAddNodeModal()" ><span class="glyphicon glyphicon-plus" alt="Add new Node"></span>Add new node...</button>
+
+      <button type="button" class="btn btn-default btn-sm btn-block" onclick="deleteNode()" ><span class="glyphicon glyphicon-minus" alt="Delete Node"></span>Delete node</button>
+       <button type="button" class="btn btn-default btn-sm btn-block" onclick="changeState()"><span  class="glyphicon glyphicon-sort-by-attributes"></span>Query/Order view</button>
+
+       <button type="button" class="btn btn-default btn-sm btn-block" onclick="findMenuClick()"><span  class="glyphicon glyphicon-search"></span>Find...</button>
+
+     
+    
+      <div class="pull-right btn-block">
+      <label for="inputSize1" class="pull-right">Page Size</label>
+      </div>
+      <div class="pull-right">
+      <input type="text" class="form-control pull-right" style="width:30%;display:inline" id="pageSize" value="50"/>
+      </div>
+     <!-- ##############     End:menu   ############ -->
+</div>
+
+
+<div class="pane ui-layout-west" oncontextmenu="return false;">
+
+	<div class="btn-group" style="width:100%">
+  	<button type="button" class="btn btn-block btn-primary dropdown-toggle" style="border-radius:0" data-toggle="dropdown">
+      Namespace: <span id="curNS">None</span> &nbsp;<span class="caret"></span>
+  	</button>
+		<ul id="nsList" class="dropdown-menu" role="menu" aria-labelledby="dropdownMenu"></ul>
+	</div>
+ 	<div id="globsGrid"></div>   
+</div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <!-- ADD NEW  NODE MODAL-->
+  <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+          <h4 class="modal-title">Adding new node</h4>
+        </div>
+        <div class="modal-body">
+          <form class="new-node-form">
+            Node name:
+            <input type="text" id="new_node_name">
+            Node value:
+            <input type="text" id="new_node_value">
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" onclick="addNode()">Save changes</button>
+        </div>
+      </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+  </div><!-- /.ADD NEW MODAL -->
+
+
+
+<!--################            FIND DIALOGUE       ###############-->
+ <!-- Modal -->
+  <div class="modal fade" id="findModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+          <h4 class="modal-title">Find:</h4>
+        </div>
+        <div class="modal-body">
+          <form class="new-node-form">
+           Type value to find:
+            <input type="text" id="find_value" onkeydown="inputKeyDown(event)"> 
+          </form>
+          <div class="panel panel-default">
+            <div class="panel-heading">Searching settings</div>
+            <div class="panel-body">
+
+              <div class="radio">
+                <label>
+                  <input type="radio" name="optionsRadios" id="optionsRadios1" value="option1" checked>
+                  Search @ index
+                </label>
+              </div>
+              <div class="radio">
+                <label>
+                  <input type="radio" name="optionsRadios" id="optionsRadios2" value="option2">
+                  Search @ values
+                </label>
+              </div>
+              <div class="radio">
+                <label>
+                  <input type="radio" name="optionsRadios" id="optionsRadios3" value="option2">
+                  Search @ both
+                </label>
+              </div>
+
+
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" onclick="findNodes();$('#findModal').modal('hide')">Find</button>
+        </div>
+      </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+  </div><!-- /.modal -->
+
+
+  <div id="loading">
+    <img src="img/ajax.gif" width="30" height="30"/>
+  </div>
+
+  <script type="text/javascript" src="js/jquery-2.0.3.min.js"></script>
+  <script type="text/javascript" src="js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="js/jquery-ui.min.js"></script>
+  <script type="text/javascript" src="js/jquery.layout-latest.min.js"></script>
+  
+  <script type="text/javascript" src="js/autoresize.js"></script>
+  <script type="text/javascript" src="js/jquery.event.drag-2.2.js"></script>
+  <script type="text/javascript" src="js/slick.core.js"></script>
+  <script type="text/javascript" src="js/slick.grid.js"></script>
+  <script type="text/javascript" src="js/slick.rowselectionmodel.js"></script>
+
+  <script type="text/javascript" src="js/vars.js"></script>
+  <script type="text/javascript" src="js/funcs.js"></script>
+  <script type="text/javascript" src="js/main.js"></script>
+
+  
+
+</body>
+</html>
+]]></CSP>
+</Export>

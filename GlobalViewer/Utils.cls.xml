@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<Class name="GlobalViewer.Utils">
+<Super>%RegisteredObject</Super>
+<TimeCreated>63033,39168.398213</TimeCreated>
+
+<Method name="NameSpaceGlobalList">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pNameSpace,pMask,pSystemGlobals</FormalSpec>
+<ReturnType>%List</ReturnType>
+<Implementation><![CDATA[
+	//set out=$lb()
+	set tick=0
+ 	Set rset=##class(%ResultSet).%New("%SYS.GlobalQuery:NameSpaceList")
+ 	Set sc=rset.Execute(pNameSpace,pMask,pSystemGlobals)
+ 	While (rset.Next()) {
+	
+	set tick=tick+1
+  	Set glb=$Piece(rset.GetData(1),"(",1)
+  	If ('pSystemGlobals)&&($Extract(glb,1,$Length("Ens."))="Ens.") Continue
+  	If (glb'="") {set out(tick)=$lb(glb)}
+ 	}
+ //if ($listdata(out,1))
+  quit ##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON($lb("name"),.out,)
+  //else {quit ""}
+]]></Implementation>
+</Method>
+
+<Method name="getNameSpaces">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%List</ReturnType>
+<Implementation><![CDATA[
+	k listNS,cur,listTrash
+	set listNS=""
+	d ##class(%SYS.Namespace).ListAll(.listTrash)	
+	set cur="listTrash"
+	while(cur'="") {set cur=$QUERY(@cur),$list(listNS,$listlength($get(listNS))+1)=$e(cur,$f(cur,"("""),*-2)}
+	q listNS
+]]></Implementation>
+</Method>
+
+<Method name="getGlobSize">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>glob</FormalSpec>
+<ReturnType>%Numeric</ReturnType>
+</Method>
+</Class>
+</Export>

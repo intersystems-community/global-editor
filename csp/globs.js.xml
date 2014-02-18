@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<CSP name="globs.js" application="/csp/glview/" default="1"><![CDATA[
+var plugins = {};
+var curPath={
+	ns:"DEV",
+	global:"CacheMsg",
+	nodes:0,
+	level:1}
+var app = angular.module('myApp', ['ngGrid']);
+app.controller('globsCtrl', function($scope,$http) {
+			$scope.changePage=function(page){
+				$scope.pagingOptions.currentPage+=($scope.pagingOptions.currentPage+page>0&&(($scope.pagingOptions.currentPage+page)*$scope.pagingOptions.pageSize<curPath.nodes+$scope.pagingOptions.pageSize))?page:0;
+			};
+			$scope.curPath=curPath;
+   			plugins.ngGridLayoutPlugin1 = new ngGridLayoutPlugin();
+   			plugins.ngGridLayoutPlugin2 = new ngGridLayoutPlugin();
+   			
+   			 var self = this;	
+    			$('#mainUI').layout({
+        		applyDemoStyles: true,
+        		center__onresize: function (x, ui) {
+            	// may be called EITHER from layout-pane.onresize OR tabs.show
+            	plugins.ngGridLayoutPlugin1.updateGridLayout();
+        		},
+        		west__onresize: function (x, ui) {
+            	// may be called EITHER from layout-pane.onresize OR tabs.show
+            	plugins.ngGridLayoutPlugin2.updateGridLayout();
+        		}
+    		});
+   		
+   			$scope.select=[];
+   			$scope.select2=[];
+   			
+    		$scope.gridOptions = { 
+    			data: 'globs', 
+    			showFilter:true, 
+    			selectedItems: $scope.select, 
+    			multiSelect:false,
+    			plugins: [plugins.ngGridLayoutPlugin2],
+    			jqueryUITheme: false,
+				jqueryUIDraggable: false
+    			};
+			   		 
+    		$scope.totalServerItems = 0;
+    		
+    		$scope.pagingOptions = {
+        	pageSize: 5,
+        	currentPage: 1
+    		};	
+    		
+			//This is globData grid
+			$scope.gridOptions2 = { 
+			data: 'globData', 
+			showFilter:true, 
+			selectedItems: $scope.select2, 
+			multiSelect:false,
+			enableCellEdit:true ,
+			enablePaging: false,
+			showFooter: false,
+        	totalServerItems: 'totalServerItems',
+        	pagingOptions: $scope.pagingOptions,
+        	enableColumnResize:true,
+        	plugins: [plugins.ngGridLayoutPlugin1],
+        	jqueryUITheme: false,
+			jqueryUIDraggable: false,
+			 columnDefs: [{ field: 'name', displayName:'Global node', sortable: false},
+                     { field: 'val',displayName: 'Value', sortable: false,resizable:true }]
+			};
+			
+			$scope.$watch('pagingOptions', function (newVal, oldVal) {
+				$scope.drillDown(curPath.global, curPath.ns,newVal.currentPage,newVal.pageSize); 	    		
+    			if(newVal.pageSize!=oldVal.pageSize){newVal.currentPage=1;}
+    		}, true);
+    
+			$scope.getGlobs=function(ns) {
+				$http.get("http://localhost:57772/csp/glview/rest/json/globals/"+ns)
+				.success(function (data) {
+					$scope.Path=ns.replace("%25","%")+">";
+					curPath.ns=ns.replace("%25","%");
+					$scope.globs = data.children;
+        		}).error(function (data, status) {
+	        
+                $scope.alertzone = "[" + status + "] ?zN????±???° ?·?°??N€N??·???? N??»???? :( [" + data + "]";
+            });
+			};
+			$scope.drillDown=function(glob,ns,page,pageSize) {
+				console.log(page,pageSize);
+				$http.get("http://localhost:57772/csp/glview/rest/json/drilldown/"+glob+"/"+ns+"/"+page+"/"+pageSize).success(function (data) {
+			
+					if(curPath.global!=glob){
+						curPath.global=glob;
+						$http.get("http://localhost:57772/csp/glview/rest/json/globSize/"+glob+"/"+ns).success(function (glSize) {curPath.nodes=glSize.size}).error(function(data,status){$scope.alertzone= "[" + status + "] ?zN????±???° ?·?°??N€N??·???? N??»???? :( [" + data + "]";})
+						}
+					curPath.ns=ns;
+           			$scope.globData = data.children;
+            		//curPath.nodes=$scope.globData[0].val;
+            		//$scope.globData.splice(0,1);
+            //$scope.setPagingData($scope.globData,page,pageSize);
+        	}).error(function (data, status) {
+	        
+                $scope.alertzone = "[" + status + "] ?zN????±???° ?·?°??N€N??·???? N??»???? :( [" + data + "]";
+            });
+			};
+			$scope.changeNS=function(ns) {
+				$scope.getGlobs(ns);
+			};
+			
+			$scope.getNSs=function() {
+				$http.get("http://localhost:57772/csp/glview/rest/json/namespaces/12").success(function (data) {
+            $scope.NSs = data;
+        	}).error(function (data, status) {
+	        
+                $scope.alertzone = "[" + status + "] ?zN????±???° ?·?°??N€N??·???? N??»???? :( [" + data + "]";
+            });
+			};
+			$scope.$watch('select[0]', function(newVal,oldVal,scope)
+			{
+				$scope.drillDown(newVal.name.replace("%","%25"),curPath.ns.replace("%","%25"),$scope.pagingOptions.currentPage,$scope.pagingOptions.pageSize);
+			});
+			$scope.$watch('globData', function(newVal,oldVal,scope)
+			{
+				
+					$('#saveChanges').show(10000);
+				
+			});
+});
+
+
+		]]></CSP>
+</Export>

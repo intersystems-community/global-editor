@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<CSP name="js/vars.js" application="/csp/glview/" default="1"><![CDATA[
+var address="http://localhost:57772";
+
+var curPath={
+  _ns:"",
+	set ns(x) { this._ns=x; getPathChanges(); },
+  get ns() {return this._ns},
+
+	_global:"",
+  set global(x) { this._global=x; getPathChanges(); },
+  get global() {return this._global},
+
+	_level:"",
+  set level(x) { this._level=x; getPathChanges();getGlobalNodes(); },
+  get level() {return this._level},
+
+	page:1,
+	pageSize:50,
+	totalNodes:1,
+	curEdit:"",
+	curIndex:'',
+
+  curMode:"get" //GET, FIND, ORDER
+};
+
+var namespaces=[
+	{name:"Couldn't load NS data"}
+];
+
+
+var globList=[
+{name:"Couldn't load globals list"}
+]; //List of globals in current ns
+
+var nodesList=[
+{name:"Couldn't load nodes of the global",val:1}
+];
+
+
+var columns = [ {id: "name", name: "Global Name", field: "name", sortable:true} ];
+var columnsNodes = [
+    {
+    	id: "name", 
+    	name: "Node Name", 
+    	field: "name",
+    	formatter: linkFormatter = function ( row, cell, value, columnDef, dataContext ) {
+            return value.replace(/\(.*\)/,function(){ 
+           	var count=0;
+           	var retStr="(";
+           	var re=/(:?".*?")|(:?\d+)|(:?\$lb\(.*?\))/g;
+           	var curStr=arguments[0];
+           	while((myArray = re.exec(curStr))!==null)
+           	{
+           		//retStr+="<a onclick=\"getGlobLevel(\\"+myArray[0]+"\\)\" >"+myArray[0]+"</a>,";
+           		retStr+="<a style=\"color:#000\" onclick=\"OnLevelSelect(this,"+count+")\" >"+myArray[0]+"</a>,";
+           		count++;
+           		// if (count>10) break;
+           		// console.log(count);
+           	}    
+           	return retStr.substring(0,retStr.length-1)+")";      				
+			});
+
+        }
+
+	},
+    {id: "val", name: "Value", field: "val"}
+  ];
+
+  var options = {
+    enableCellNavigation: true,
+    enableColumnReorder: false,
+   	width:"100%",
+    forceFitColumns:true,
+     multiColumnSort: true
+  };
+  var optionsNodes = {
+    enableCellNavigation: true,
+    enableColumnReorder: false,
+    forceFitColumns:true
+  };
+
+var nodesToShow=[];//array of nodes which are drawn on screen
+
+var globListGrid="";
+var lastCurPath={
+  ns:"",
+  global:"",
+  level:-1,
+  page:1,
+  pageSize:5,
+  totalNodes:1
+};]]></CSP>
+</Export>

@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<CSP name="js/.js" application="/csp/glview/" default="1"><![CDATA[
+var address="http://localhost:57772";
+var curPath={
+	ns:"",
+	global:"",
+	level:-1,
+	page:1,
+	pageSize:5,
+	totalNodes:1
+};
+
+var namespaces=[
+	{name:"Couldn't load NS data"}
+];
+
+
+var globList=[
+{name:"Couldn't load globals list"}
+]; //List of globals in current ns
+
+var nodesList=[
+{name:"Couldn't load nodes of the global",val:1}
+];
+
+
+var columns = [ {id: "name", name: "Global Name", field: "name"} ];
+var columnsNodes = [
+    {
+    	id: "name", 
+    	name: "Node Name", 
+    	field: "name",
+    	formatter: linkFormatter = function ( row, cell, value, columnDef, dataContext ) {
+            return value.replace(/\(.*\)/,function(){ 
+           	var count=0;
+           	var retStr="(";
+           	var re=/(:?".*?")|(:?\d+)|(:?\$lb\(.*?\))/g;
+           	var curStr=arguments[0];
+           	while((myArray = re.exec(curStr))!==null)
+           	{
+           		//retStr+="<a onclick=\"getGlobLevel(\\"+myArray[0]+"\\)\" >"+myArray[0]+"</a>,";
+           		retStr+="<a style=\"color:#000\" onclick=\"OnLevelSelect(this,"+count+")\" >"+myArray[0]+"</a>,";
+           		count++;
+           		// if (count>10) break;
+           		// console.log(count);
+           	}    
+           	return retStr.substring(0,retStr.length-1)+")";      				
+			});
+
+        }
+
+	},
+    {id: "val", name: "Value", field: "val"}
+  ];
+
+  var options = {
+    enableCellNavigation: true,
+    enableColumnReorder: false,
+   	width:"100%",
+    forceFitColumns:true
+  };
+  var optionsNodes = {
+    enableCellNavigation: true,
+    enableColumnReorder: false,
+    forceFitColumns:true
+  };
+
+var nodesToShow=[];//array of nodes which are drawn on screen
+
+var globListGrid="";
+
+
+var addNode = function(){
+	OnNodeSelect(); //calling without params mean new NODE
+}
+var onSaveNodeData = function()
+{
+	nodesToShow[curNode.index].name=$('#globNameIndex').text();
+	nodesToShow[curNode.index].val=$("#nodeTextArea").val();
+	$('#myModal').modal('hide');
+	var valToSave = $("#nodeTextArea").val().match(/^"(.*)"$/) ? $("#nodeTextArea").val().match(/^"(.*)"$/)[1] : $("#nodeTextArea").val()
+	$.ajax({
+	url:address+'/csp/glview/rest/json/update/',
+	type:"POST",
+	data:{"name":$('#globNameIndex').text(),"val":valToSave, "ns":curPath.ns, "valType":$("#nodeType").text()}
+	}).error(function(){alert('Cant save!')});
+	return true;
+
+}
+var KeyUpHandlerForTA= function(){
+	if(event.keyIdentifier=="Enter"){
+		
+		setTimeout(updateEntity,400);
+		event.preventDefault();
+		return false;
+	}
+
+}
+
+var KeyUpHandler= function(){
+	
+	if(event.keyIdentifier=="Left"){
+		curPath.page=1;
+		if(curPath.level)
+		{
+			curPath.level=curPath.level.replace(/,?[^,]*\)/,")")
+			if (curPath.level==")") curPath.level=-1;
+		}
+		getGlobalNodes();
+	}
+	else if(event.keyIdentifier=="Right"){
+		var tempIndex=1;
+		curPath.page=1;
+		tempIndex=(curPath.level==-1)?"1":curPath.level.split(",").length +1 ;
+		$("#nodesGrid .l0.selected a:nth-child("+tempIndex+")").trigger("click");
+	}
+	else if(event.keyIdentifier=="Enter"){
+		$("#nodesGrid .l0.selected").trigger("dblclick");
+	}
+};
+
+window.onresize=function() {
+	$('#mycontainer').layout().resizeAll();
+	nodesListGrid.resizeCanvas();
+};
+
+	
+
+var changePage = function(e){
+	if((curPath.page+e>0)&&((curPath.page+e)<(curPath.totalNodes/curPath.pageSize + 1))){
+		curPath.page+=e;
+		getGlobalNodes();
+		//$("#startNum").text( (curPath.page-1)*curPath.pageSize +1 );
+		//$("#endNum").text( Math.min(((curPath.page-1)*curPath.pageSize +nodesListGrid.getDataLength()),curPath.totalNodes) );
+	}
+}
+var getGlobalNodes = function (e,args) {
+			//console.log(args);
+			curPath.global=args ? globList[args.row].name : curPath.global; //New Global or just paging changes
+			if(args)
+			{
+				//It means first time you got the global
+				curPath.level=-1;
+				curPath.page=1;
+				$.ajax({
+				datatype:"json",
+				url:address+'/csp/glview/rest/json/globSize/'+encodeURIComponent(curPath.global)+"/"+encodeURIComponent(curPath.ns),
+				type:"GET"
+				}).done(function(data){
+					curPath.totalNodes=$.parseJSON(data).size;
+					console.log(curPath.totalNodes);
+					$("#totalNodes").text(curPath.totalNodes);
+				});
+			}
+			var isAjaxComplete = false;
+			$.ajax({
+			datatype:"json",
+			url:address+'/csp/glview/rest/json/glob/get?ns='+encodeURIComponent(curPath.ns)+'&name='+encodeURIComponent(curPath.global)+'&page='+encodeURIComponent(curPath.page)+'&pageSize='+encodeURIComponent(curPath.pageSize)+'&level='+encodeURIComponent(curPath.level),
+			type:"GET"
+			}).success(function(data){
+			nodesList=$.parseJSON(data).children
+			nodesListGrid = new Slick.Grid("#nodesGrid", nodesList, columnsNodes, optionsNodes);
+			nodesListGrid.setSelectionModel(new Slick.RowSelectionModel());
+			nodesListGrid.onSelectedRowsChanged.subscribe(OnNodeSelect);
+			$("#startNum").text( (curPath.page-1)*curPath.pageSize +1 );
+			$("#endNum").text( Math.min(((curPath.page-1)*curPath.pageSize +nodesListGrid.getDataLength()),curPath.totalNodes) );
+			$("#nodesGrid .slick-cell.l0.r0").first().trigger("click");
+			nodesListGrid.setSelection
+			isAjaxComplete=true;
+			});
+			setTimeout(function(){if(!isAjaxComplete) {$.ajax().abort();console.log("too much data");}},10000);//.done(addIndexLinks);
+      		//console.log(args.rows[0]);
+      		//console.log(globList[args.rows[0]]);
+      		return false;
+			};
+
+var updateEntity = function() {
+			$('#myModal').modal('hide');
+			var valToSave = $("#nodeTextArea").val();//$("#nodeTextArea").val().match(/^"(.*)"$/) ? $("#nodeTextArea").val().match(/^"(.*)"$/)[1] : $("#nodeTextArea").val()
+			var typeToSave=(valToSave.length>2&&valToSave.charAt(0)=="$"&&valToSave.charAt(1)=="l")?"l":"r";
+			console.log(valToSave);
+			$.ajax({
+					url:address+'/csp/glview/rest/json/update/',
+					type:"POST",
+					data:{"name":$('#globNameIndex').text(),"val":valToSave, "ns":curPath.ns, "valType":typeToSave}
+					}).error(function(){alert('Cant save!')}).done(getGlobalNodes());
+
+			return true;
+				
+			};
+var OnLevelSelect = function(newLevel,num){
+			
+			
+			
+			var strIn=newLevel.parentElement.innerText.match(/\(.*\)/); //Р’С‹РґРµР»РёР»Рё РІСЃСЋ С‡Р°СЃС‚СЊ РІ СЃРєРѕР±РєР°С…
+           	var count=0;
+           	var retStr="(";
+           	var re=/(:?".*?")|(:?\d+)|(:?\$lb\(.*?\))/g;
+           	
+           	while((myArray = re.exec(strIn))!==null)
+           	{
+           		//retStr+="<a onclick=\"getGlobLevel(\\"+myArray[0]+"\\)\" >"+myArray[0]+"</a>,";
+           		retStr+=myArray[0]+",";
+           		count++;
+           		if (count>num) break;
+           		// if (count>10) break;
+           		// console.log(count);
+           	}    
+           	 			
+			
+			curPath.level = retStr.substring(0,retStr.length-1)+")";   
+			getGlobalNodes();
+			return false;
+}
+
+
+
+var changeNS = function(ns) {
+			
+			curPath.ns=ns;
+			$.ajax({
+			datatype:"json",
+			url:address+'/csp/glview/rest/json/glob/get?ns='+encodeURIComponent(curPath.ns),
+			type:"GET"
+			}).done(function(data){
+			globList=$.parseJSON(data).children
+			globListGrid = new Slick.Grid("#globsGrid", globList, columns, options);
+			globListGrid.setSelectionModel(new Slick.RowSelectionModel());
+			//globListGrid.onSelectedRowsChanged.subscribe(getGlobalNodes);
+			globListGrid.onDblClick.subscribe(getGlobalNodes);
+			$("#curNS").text(curPath.ns);
+			});
+}
+
+var getNS = function(){
+	$.ajax({
+			datatype:"json",
+			url:address+'/csp/glview/rest/json/namespaces/',
+			type:"GET"
+	}).done(function(data){
+		namespaces =$.parseJSON(data).children;
+		for(var i=0;i<namespaces.length;i++){
+		$("#nsList")[0].innerHTML+="<li ><a tabindex=\"-1\" onclick=\"changeNS('"+namespaces[i].name+"')\">"+namespaces[i].name+"</a></li>";
+	}
+	});
+}
+
+var onPageSizeChanged = function(e) {
+	//console.log();
+	//console.log($("#pageSize").val());
+	curPath.page=1;
+	curPath.pageSize = e.currentTarget.value;
+	getGlobalNodes();
+
+}
+
+var OnNodeSelect = function(e, args) {
+			var regExResult;
+			if (!curPath.ns) {alert("Please choose namespace first!"); return false;}
+			if(args){
+			regExResult=nodesList[args.row].name.match(/\(.*\)/);
+			}
+			var valueToShow=(args)?nodesList[args.row].val:"";
+			var nameToShow=(curPath.global)?"<span style=\"font-family:monospace\">"+curPath.global+"</span>"+ ((regExResult)?regExResult:"()") : "<span style=\"font-family:monospace\">NAME</span>(INDEX)"
+			var typeToShow=(args)?nodesList[args.row].type:"r";
+			$('#globNameIndex')[0].innerHTML=nameToShow;		
+			$("#nodeTextArea").val(valueToShow);
+			$("#nodeType").text(typeToShow);
+			//$('#myModal').modal();
+			
+			return false;
+			}
+var lastCurPath={
+	ns:"",
+	global:"",
+	level:-1,
+	page:1,
+	pageSize:5,
+	totalNodes:1
+};
+
+var getPathChanges = function() {
+
+	if(curPath.ns=="") return;
+	
+	if(curPath!==lastCurPath){ 
+		for(key in curPath){
+			lastCurPath[key]=curPath[key];
+		}
+		 gl=(curPath.global)?curPath.global:"";
+		 //console.log(curPath.level);
+		 lvl=(curPath.level!=-1)?curPath.level:"";
+		
+		$("#breadcrumbs").text(curPath.ns+"/"+gl+lvl);
+	}
+	return;
+};
+/*
+======================Initiallize Function======================
+*/
+$(document).ready(function(){
+
+	$('#mycontainer').layout({
+		togglerContent:"",
+		south__minSize: 50,
+		north__minSize: 20,
+		west__onresize: function(){
+			globListGrid.resizeCanvas();
+			}
+		});
+	getNS();
+	$("#pageSize").on( "keyup", onPageSizeChanged );
+	setInterval(getPathChanges,100);
+	$("#nodesGrid").off("keydown");
+	$("#nodesGrid").keyup(KeyUpHandler);
+	$("#nodeTextArea").keydown(KeyUpHandlerForTA);
+	$('#myModal').on('shown.bs.modal', function () {
+    		$('#nodeTextArea').focus();
+			});
+/*
+	$.ajax({
+			datatype:"json",
+			url:address+'/csp/glview/rest/json/glob/get?ns=DEV',
+			type:"GET"
+	}).done(function(data){
+		globList=$.parseJSON(data).children
+		globListGrid = new Slick.Grid("#globsGrid", globList, columns, options);
+		globListGrid.setSelectionModel(new Slick.RowSelectionModel());
+		globListGrid.onSelectedRowsChanged.subscribe(OnGlobalSelect);
+	});
+*/
+	
+	
+	
+});]]></CSP>
+</Export>

@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<CSP name="js/funcs.js" application="/csp/glview/" default="1"><![CDATA[
+
+
+var showAddNodeModal = function(){
+	if (!curPath.ns) {alert("Please choose namespace first!"); return false;}
+	if ($("#new_node_name").val()=="") $("#new_node_name").val("^"+curPath.global);	
+	$("#myModal").modal();
+
+}
+var addNode = function() {
+	serverUpdate($("#new_node_name").val(),$("#new_node_value").val(),"",getGlobalNodes);
+	$("#myModal").modal('hide');
+}
+
+
+var KeyUpHandlerForTA= function(){
+	if(event.keyIdentifier=="Enter"){
+		
+		setTimeout(updateEntity,400);
+		event.preventDefault();
+		return false;
+	}
+
+}
+
+var KeyUpHandler= function(){
+	
+	if(event.keyIdentifier=="Left"){
+		curPath.page=1;
+		if(curPath.level)
+		{
+			curPath.level=curPath.level.replace(/,?[^,]*\)/,")")
+			if (curPath.level==")") curPath.level="";
+		}
+		getGlobalNodes();
+	}
+	else if(event.keyIdentifier=="Right"){
+		var tempIndex=1;
+		curPath.page=1;
+		tempIndex=(curPath.level==-1)?"1":curPath.level.split(",").length +1 ;
+		$("#nodesGrid .l0.selected a:nth-child("+tempIndex+")").trigger("click");
+	}
+	else if(event.keyIdentifier=="Enter"){
+		$("#nodesGrid .l0.selected").trigger("dblclick");
+	}
+};
+
+
+
+	
+// #	#	#	#	#	#	#	#	#	
+//			PAGING
+// #	#	#	#	#	#	#	#	#	
+var changePage = function(e){
+	if((curPath.page+e>0)&&((curPath.page+e)<(curPath.totalNodes/curPath.pageSize + 1))){
+		curPath.page+=e;
+		if (curPath.curMode=="get") {getGlobalNodes();}
+		else if (curPath.curMode=="find") {findNodes();}
+		//$("#startNum").text( (curPath.page-1)*curPath.pageSize +1 );
+		//$("#endNum").text( Math.min(((curPath.page-1)*curPath.pageSize +nodesListGrid.getDataLength()),curPath.totalNodes) );
+	}
+}
+
+var onPageSizeChanged = function(e) {
+	//console.log();
+	//console.log($("#pageSize").val());
+	curPath.page=1;
+	curPath.pageSize = e.currentTarget.value;
+	if (curPath.curMode=="get") {getGlobalNodes();}
+	else if (curPath.curMode=="find") {findNodes();}
+	e.preventDefault();
+	return false;
+
+}
+
+
+
+
+
+var getGlobalNodes = function (e,args) {
+			//console.log(args);
+			//curPath.curMode="get";
+			curPath.global=args ? globList[args.row].name : curPath.global; //New Global or just paging changes
+			if(args)
+			{
+				//It means first time you got the global
+				curPath.level="";
+				curPath.page=1;
+				$.ajax({
+				datatype:"json",
+				url:address+'/csp/glview/rest/json/globSize/'+encodeURIComponent(curPath.global)+"/"+encodeURIComponent(curPath.ns),
+				type:"GET"
+				}).done(function(data){
+					curPath.totalNodes=$.parseJSON(data).size;
+					console.log(curPath.totalNodes);
+					$("#totalNodes").text(curPath.totalNodes);
+				});
+			}
+			var isAjaxComplete = false;
+			$.ajax({
+			datatype:"json",
+			url:address+'/csp/glview/rest/json/glob/'+curPath.curMode+'?ns='+encodeURIComponent(curPath.ns)+'&name='+encodeURIComponent(curPath.global)+'&page='+encodeURIComponent(curPath.page)+'&pageSize='+encodeURIComponent(curPath.pageSize)+'&level='+encodeURIComponent(curPath.level),
+			type:"GET"
+			}).success(function(data){
+			nodesList=$.parseJSON(data).children;
+			
+			nodesListGrid = new Slick.Grid("#nodesGrid", nodesList, columnsNodes, optionsNodes);
+			nodesListGrid.setSelectionModel(new Slick.RowSelectionModel());
+			nodesListGrid.onSelectedRowsChanged.subscribe(OnNodeSelect);
+			
+			$("#startNum").text( (curPath.page-1)*curPath.pageSize +1 );
+			$("#endNum").text( Math.min(((curPath.page-1)*curPath.pageSize +nodesListGrid.getDataLength()),curPath.totalNodes) );
+			var ind=curPath.curIndex ? curPath.curIndex : 0;
+			nodesListGrid.setActiveCell(ind,1);
+			$("#nodesGrid").trigger("focus");
+			isAjaxComplete=true;
+			});
+      		return false;
+			};
+
+var updateEntity = function() {
+			$('#myModal').modal('hide');
+			var valToSave = $("#nodeTextArea").val();
+			curPath.curIndex=nodesListGrid.getActiveCell().row;
+			serverUpdate(curPath.curEdit,valToSave,"",getGlobalNodes);
+			return true;
+				
+			};
+
+var setLvl = function(level){
+				
+			}
+var OnLevelSelect = function(newLevel,num){
+			
+			
+			
+			var strIn=newLevel.parentElement.innerText.match(/\(.*\)/); //Р’С‹РґРµР»РёР»Рё РІСЃСЋ С‡Р°СЃС‚СЊ РІ СЃРєРѕР±РєР°С…
+           	var count=0;
+           	var retStr="(";
+           	var re=/(:?".*?")|(:?\d+)|(:?\$lb\(.*?\))/g;
+           	
+           	while((myArray = re.exec(strIn))!==null)
+           	{
+           		//retStr+="<a onclick=\"getGlobLevel(\\"+myArray[0]+"\\)\" >"+myArray[0]+"</a>,";
+           		retStr+=myArray[0]+",";
+           		count++;
+           		if (count>num) break;
+           		// if (count>10) break;
+           		// console.log(count);
+           	}    
+           	 			
+			
+			curPath.level = retStr.substring(0,retStr.length-1)+")";  //retStr.substring(0,retStr.length-1)+")";   
+			getGlobalNodes();
+			return false;
+}
+
+
+var inputKeyDown=function(event){
+	if (event.keyCode == 13) { findNodes();$('#findModal').modal('hide'); event.preventDefault();}
+}
+
+var changeNS = function(ns) {
+			
+			curPath.ns=ns;
+			$.ajax({
+			datatype:"json",
+			url:address+'/csp/glview/rest/json/glob/get?ns='+encodeURIComponent(curPath.ns),
+			type:"GET"
+			}).error(function(e) {
+				alert(e.responseText);
+				return true;
+			}).success(function(data){
+				//РџР°СЂСЃРёРј РґР°РЅРЅС‹Рµ Рё РІС‹СЃС‚СЂР°РёРІР°РµРј С‚Р°Р±Р»РёС†Сѓ СЃ РіР»РѕР±Р°Р»Р°РјРё
+				globList=$.parseJSON(data).children
+				globListGrid = new Slick.Grid("#globsGrid", globList, columns, options);
+				//РќР°Р·РЅР°С‡Р°РµРј events
+				globListGrid.onDblClick.subscribe(getGlobalNodes);
+				globListGrid.onSort.subscribe(function (e, args) {
+	      		
+	      		var cols = args.sortCols;
+
+			      	globList.sort(function (dataRow1, dataRow2) {
+			        	for (var i = 0, l = cols.length; i < l; i++) {
+			          		var field = cols[i].sortCol.field;
+			          		var sign = cols[i].sortAsc ? 1 : -1;
+			          		var value1 = dataRow1[field], value2 = dataRow2[field];
+			          		var result = (value1 == value2 ? 0 : (value1.toString().toLowerCase() > value2.toString().toLowerCase() ? 1 : -1)) * sign;
+			          		if (result != 0) {
+			            		return result;
+			          		}
+			        	}
+			        return 0;
+			      	});
+
+			    globListGrid.invalidate();
+			    globListGrid.render();
+			    });
+			    nodesListGrid = new Slick.Grid("#nodesGrid",[null],columnsNodes,optionsNodes);
+
+				$("#curNS").text(curPath.ns);
+			});
+}
+
+var getNS = function(){
+	$.ajax({
+			datatype:"json",
+			url:address+'/csp/glview/rest/json/namespaces/',
+			type:"GET"
+	}).done(function(data){
+		namespaces =$.parseJSON(data).children;
+		for(var i=0;i<namespaces.length;i++){
+		$("#nsList")[0].innerHTML+="<li ><a tabindex=\"-1\" onclick=\"changeNS('"+namespaces[i].name+"')\">"+namespaces[i].name+"</a></li>";
+	}
+	});
+}
+
+
+
+var OnNodeSelect = function(e, args) {
+			
+			var regExResult;
+			if (!curPath.ns) {alert("Please choose namespace first!"); return false;}
+			if(args){
+			regExResult=nodesList[args.rows[0]].name.match(/\(.*\)/);
+			}
+			var valueToShow=(args)?nodesList[args.rows[0]].val:"";
+			var nameToShow=curPath.global+ ((regExResult)?regExResult:"") 
+			
+			//$('#globNameIndex')[0].innerHTML=nameToShow;		
+			$("#nodeTextArea").val(valueToShow);
+			curPath.curEdit=nameToShow;
+			//$("#nodeType").text(typeToShow);
+			//$('#myModal').modal();
+			
+			return false;
+			}
+
+
+
+var deleteNode = function() {
+	var nameToDel=nodesList[nodesListGrid.getActiveCell().row].name;
+	serverUpdate(nameToDel,"",1,getGlobalNodes);
+}
+
+var findMenuClick = function() {
+	$.when($('#findModal').modal()).then(function(){$('#find_value').trigger('focus')})
+}
+
+
+
+
+/*===================	Function for AJAX- requests  	*/
+var serverUpdate = function(name,value,needToDelete,doneHandler){
+	$.ajax({
+			url:address+'/csp/glview/rest/json/update/',
+			type:"POST",
+			data:{"name":name,"val":value, "ns":curPath.ns,"del":needToDelete}
+			}).error(function(){alert('Operation unsuccessful!')}).done(doneHandler());
+
+			return true;}
+
+
+
+
+var getPathChanges = function() {
+
+	if(curPath.ns=="") return;
+	
+	if(curPath!==lastCurPath){ 
+		for(key in curPath){
+			lastCurPath[key]=curPath[key];
+		}
+		 gl=(curPath.global)?curPath.global:"";
+		 //console.log(curPath.level);
+		 lvl=(curPath.level!=-1)?curPath.level:"";
+		
+		$("#breadcrumbs").text(curPath.ns+"/"+gl+lvl);
+	}
+	return;
+};
+
+
+
+var findNodes = function() {
+			if (!(curPath.ns&&curPath.global)) return false;
+			var isAjaxComplete = false;
+			$.ajax({
+			datatype:"json",
+			url:address+'/csp/glview/rest/json/glob/find?ns='+encodeURIComponent(curPath.ns)+'&name='+encodeURIComponent(curPath.global)+'&page='+encodeURIComponent(curPath.page)+'&pageSize='+encodeURIComponent(curPath.pageSize)+'&strToFind='+encodeURIComponent($("#find_value").val()),
+			type:"GET"
+			// beforeSend: function() {
+   //  			$('#loading').show();
+  	// 		}
+			}).success(function(data){
+			if (data=="null") {
+				alert("Couldn't find:(");
+				// $('#loading').hide();
+				return false;}
+			nodesList=$.parseJSON(data).children
+			nodesListGrid = new Slick.Grid("#nodesGrid", nodesList, columnsNodes, optionsNodes);
+			nodesListGrid.setSelectionModel(new Slick.RowSelectionModel());
+			nodesListGrid.onSelectedRowsChanged.subscribe(OnNodeSelect);
+			$("#startNum").text( (curPath.page-1)*curPath.pageSize +1 );
+			$("#endNum").text( Math.min(((curPath.page-1)*curPath.pageSize +nodesListGrid.getDataLength()),curPath.totalNodes) );
+			nodesListGrid.setActiveCell(0,1);
+			curPath.curMode="find";
+
+			// $('#loading').hide();
+			isAjaxComplete=true;
+			});
+
+}
+
+var breadcrumbsSubmitHandler = function(event) {
+	//console.log(event);
+	if (event.keyCode == 13) { 
+		//Enter pressed 
+
+		event.preventDefault();
+		var _ns=event.target.innerText.match(/(.+)\//);
+		var _gl=event.target.innerText.match(/\/(.+)\(?/);
+			console.log(_gl);
+		if (_ns) _ns=_ns[1];
+		if (_gl) _gl=_gl[1];
+		if (curPath.ns != _ns) {
+			changeNS(_ns);
+		}
+		if (curPath.global != _gl) {
+			curPath.global = _gl;
+			getGlobalNodes(); 
+		}
+		return false;
+
+	}
+	
+	return true;
+}
+
+
+
+var changeState = function() {
+	console.log(1);
+	// Р РѕСѓС‚РµСЂ РґР»СЏ СЃРјРµРЅС‹ СЃРѕСЃС‚РѕСЏРЅРёР№ - find / get / order
+	switch(curPath.curMode) {
+		case "order": 	curPath.curMode = "get";	
+
+						break;
+
+		case "get": 	curPath.curMode = "order";
+						break;
+
+		case "find": 	curPath.curMode = "get";
+						break;
+
+
+	}
+	getGlobalNodes();
+}
+
+
+]]></CSP>
+</Export>

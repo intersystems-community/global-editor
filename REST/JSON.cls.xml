@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<Class name="REST.JSON">
+<Description>
+*******************************************************
+использованы материалы с мероприятия
+some part of this source code getting from
+InterSystems Global Summit 2013 
+"Building Mobile Applications with RESTful Interfaces" 
+by Chris Carmichael and Oliver Caudron
+*******************************************************
+JSON Test class</Description>
+<Super>%Base</Super>
+<TimeCreated>63000,44444.255278</TimeCreated>
+
+<Method name="Router">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>method</FormalSpec>
+<Implementation><![CDATA[
+	//Just taking letter before ?
+	set method=$e(method,1,$f(method,"?")-2)
+	//w method
+	if ($get(method)="") q $$$ERROR("Choose the method")
+	if ($get(method)="get")
+	{
+	
+		q ..GetGlobs() 
+	}
+	if ($get(method)="post")
+	{
+		q ..UpdateGlobData()
+	}
+	if ($get(method)="find")
+	{
+		q ..FindNodes()
+	}
+	if ($get(method)="order")
+	{
+		q ..GetNodesViaOrder()
+	}
+	q $$$OK
+]]></Implementation>
+</Method>
+
+<Method name="UpdateGlobData">
+<ClassMethod>1</ClassMethod>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	#define get(%name) $get(%request.Data(%name,1))
+	set glob = $$$get("name"),ns=$$$get("ns"), val=$$$get("val"), needToDel=$$$get("del")
+	if $e(glob,1)="^" set glob=$e(glob,2,*)
+	//set ^myGlobal = val
+	//UNCOMMENT THIS TO ENABLE UPDATING GLOBDATA
+	set answer=$$$OK
+	if (needToDel) {try{k @("^|"""_ns_"""|"_glob) goto END} 
+	catch {set answer=$$$ERROR("Cannot delete") goto END}
+	}
+	set code="set ^|"""_ns_"""|"_glob_"="_val_" q 1"
+	try {//set @("^|"""_ns_"""|"_glob)=val
+		
+		set answer=$xecute(code)
+		//d ##class(Globals.Utils).executeString(ns,glob,val,valType)
+	}
+	catch {
+		set answer=$$$ERROR(code)
+		}
+END
+	q answer
+]]></Implementation>
+</Method>
+
+<Method name="GetGlobs">
+<Description><![CDATA[
+Returns either list of globs in some namespace(if ...?ns=SOME_NAMESPACE)
+or list of some global nodes in some namespace(if ...?name=SOME_GLOBAL&ns=SOME_NS&page=NUM_PAGE&pageSize=PAGE_SIZE)]]></Description>
+<ClassMethod>1</ClassMethod>
+<Implementation><![CDATA[
+	
+	#define get(%name) $get(%request.Data(%name,1))
+	
+	set answer=$$$OK
+	set ns=$$$get("ns")
+	set globalName=$$$get("name")
+	
+	if ($get(globalName)="")
+	{
+		//List of all globals in NameSpace
+		set out=$lb()
+		set ns=$replace(ns,"%25","%")
+		set tick=0
+ 		Set rset=##class(%ResultSet).%New("%SYS.GlobalQuery:NameSpaceList")
+ 		Set sc=rset.Execute(ns,"*",0)
+ 		While (rset.Next()) {
+	
+		set tick=tick+1
+  		Set glb=$Piece(rset.GetData(1),"(",1)
+  		If ($Extract(glb,1,$Length("Ens."))="Ens.") Continue
+		If (glb'="") {set out(tick)=$lb(glb)}
+ 		}
+ 		if ($get(out(1))="") { set answer=$$$ERROR(404,"Not Found")}
+ 		else {d ##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON($lb("name"),.out,)}
+		q answer
+	}
+	else
+	{
+		//Show some nodes
+		set page=$$$get("page")
+		set pageSize=$$$get("pageSize")
+		set level = $$$get("level")
+		d ..GetNodes(globalName, ns, page,pageSize,level)
+		//d ##class(REST.JSON).GetGlobNodes(globalName,ns,page,pageSize,$get(level))
+		q $$$OK
+	}
+]]></Implementation>
+</Method>
+
+<Method name="FindNodes">
+<ClassMethod>1</ClassMethod>
+<Implementation><![CDATA[
+	#define get(%name) $get(%request.Data(%name,1))
+	
+	set ns=$$$get("ns")
+	set glob=$$$get("name")
+	set page=$$$get("page")
+	set pageSize=$$$get("pageSize")
+	set strToFind = $zcvt($$$get("strToFind"),"I","URL")
+	if ($e(glob,1)="^") set glob=$e(glob,2,*)
+	
+	set startNum=(page-1)*pageSize +1
+	set endNum=page*pageSize +1
+	if ($get(pageSize)="") set endNum=0
+	set tick=1
+	set rs=##class(%ResultSet).%New("%Global:Find")
+	set sc=rs.Execute(ns,"^"_glob,strToFind,,2,2)
+	set answer = $$$ERROR("Error was occured, check the values!")
+	if ($$$ISOK(sc)) 
+	{
+		k response
+		while (rs.Next())
+		{
+			if ((tick>=startNum)) set response(tick) = $lb(rs.Name, rs.Value)
+			set tick=$i(tick)
+			if ((tick>=endNum)&&(endNum'=0)) q
+		}
+		d ##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON($lb("name","val","type"),.response,)
+		set answer=$$$OK
+	}
+	q answer
+]]></Implementation>
+</Method>
+
+<Method name="GetGlobSize">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>glob,ns</FormalSpec>
+<Implementation><![CDATA[
+	
+	if glob="" q ##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON($lb("size"),$lb(0),)
+	set tick=0
+	
+	//Checking out top level of global
+	try {set cur=@("^|"""_ns_"""|"_glob)
+	set tick=tick+1}
+	
+	catch{}
+	set cur=$query(@("^|"""_ns_"""|"_glob))
+	if cur="" q tick
+	while(cur'="")
+	{	s tick=tick+1
+		set cur=$QUERY(@cur)
+	}
+	
+	
+	q ##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON($lb("size"),$lb(tick),)
+]]></Implementation>
+</Method>
+
+<Method name="GetNodes">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>glob,ns,page,pageSize,level</FormalSpec>
+<Implementation><![CDATA[
+	set startNum=(page-1)*pageSize +1
+	set endNum=page*pageSize +1
+	if ($get(pageSize)="") set endNum=0
+	if ($get(level)'=-1) set glob = glob_$e(level,1,*-1)
+	
+	set response =""
+	set tick=1
+	set rs = ##class(%ResultSet).%New("%Library.Global:Get")
+	set sc = rs.Execute(ns,"^"_glob,"",2,2)
+	while (rs.Next())
+	{
+		if ((tick>=startNum)) set response(tick) = $lb(rs.Name, rs.Value)
+		set tick=$i(tick)
+		if ((tick>=endNum)&&(endNum'=0)) q
+	}
+	q ##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON($lb("name","val","type"),.response,)
+]]></Implementation>
+</Method>
+
+<Method name="GetNodesViaOrder">
+<ClassMethod>1</ClassMethod>
+<ProcedureBlock>1</ProcedureBlock>
+<Implementation><![CDATA[
+	#define get(%name) $get(%request.Data(%name,1))
+	
+	set ns=$$$get("ns")
+	set glob=$$$get("name")
+	set page=$$$get("page")
+	set pageSize=$$$get("pageSize")
+	set level=$$$get("level")
+	
+
+	//выдаем узлы по порядку от startNum до endNum
+	set startNum=(page-1)*pageSize +1
+	set endNum=page*pageSize +1
+	if ($get(pageSize)="") set endNum=0
+	set ns=$replace(ns,"%25","%")
+	set glob=$replace(glob,"%25","%")
+	set listGL=$lb()
+	set tick=1
+	
+
+	//Show ONLY some level
+		//if (level'="") set level="("_level_")"
+		set globName ="^|"""_ns_"""|"_glob_level
+		//#todo: add top node ^SomeGlob = 123 
+		if (level="") {set key = $o(@(globName)@(""))}
+		else 
+		{
+			if ($data(@globName)'=0)
+			{
+				//Узел, с которого начинаем погружение
+				if ($data(@globName)=10){set nodeStr =$c(1)}
+				else {
+					set rs=##class(%ResultSet).%New("%Global:Get")
+					
+					set sc=rs.Execute(ns, glob,"",2,2)
+					if ($$$ISOK(sc)) { d rs.Next() set nodeStr = rs.Value}
+					}
+				//else {set nodeStr = ##class(Globals.Utils).nodeToStr(globName)}
+				if ((tick>=startNum)){set listGL(tick)=$lb("^"_$e(globName,$f(globName,"|",4),*),nodeStr)}
+				s tick=tick+1
+				if ((tick>endNum)&&(endNum'=0)) q
+			}
+			set key= $o(@(globName)@(""))
+			
+		}
+		while (key'="")
+		{
+			set globStr = $na(@(globName)@(key))
+			
+			if ($data(@globStr)=10) 
+			{
+				//нет значения, но есть потомки
+				set nodeStr=$c(1)
+			}
+			else {set nodeStr = ##class(Globals.Utils).nodeToStr(globStr)}
+			
+			if ((tick>=startNum)){set listGL(tick)=$lb("^"_$e(globStr,$f(globStr,"|",4),*),nodeStr)}
+			s tick=tick+1
+			if ((tick>endNum)&&(endNum'=0)) q
+			set key=$o(@globStr)	
+			
+		
+	}
+	
+	q ##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON($lb("name","val"),.listGL,)
+]]></Implementation>
+</Method>
+
+<Method name="GetNames">
+<ClassMethod>1</ClassMethod>
+<ProcedureBlock>0</ProcedureBlock>
+<Implementation><![CDATA[
+	set listNS2=$lb()
+	d ##class(%SYS.Namespace).ListAll(.listTrash2)	
+	set cur="listTrash2"
+	set cur=$QUERY(@"listTrash2")
+	s tick2=1
+	
+	while(cur'="") 
+	{
+		set listNS2(tick2)=$lb($e(cur,$f(cur,"("""),*-2))
+		//w "{""name"":"""_$e(cur,$f(cur,"("""),*-2)_"""}"
+		set cur=$QUERY(@cur)
+		//if $get(cur)'="" w ","
+		s tick2=tick2+1
+	}
+	//w "]"
+	q ##class(%ZEN.Auxiliary.jsonProvider).%ArrayToJSON($lb("name"),.listNS2,)
+]]></Implementation>
+</Method>
+</Class>
+</Export>

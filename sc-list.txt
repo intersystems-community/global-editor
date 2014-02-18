@@ -1,0 +1,11 @@
+<cspapp>
+<cspapp>/GlobalViewerHome.csp
+<cspapp>/globs.js
+<cspapp>/GVstyle.css
+<cspapp>/ng-grid.css
+Globals.PKG
+GlobalViewer.PKG
+GlobalViewer.Utils.CLS
+REST.Broker.CLS
+REST.JSON.CLS
+REST.PKG

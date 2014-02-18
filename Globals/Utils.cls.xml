@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Export generator="Cache" version="25">
+<Class name="Globals.Utils">
+<IncludeCode>Globs</IncludeCode>
+<Super>%RegisteredObject</Super>
+<TimeCreated>63011,53656.67001</TimeCreated>
+
+<Method name="listToString">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>str:%String</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	
+	set retVal="$lb(", nextElem="",ptr=0
+	
+	if ($$$LV(str)) {
+		try{
+		while ($LISTNEXT($get(str),ptr,nextElem)){
+			if ($$$LV(nextElem)) {
+				set ttTT =..listToString($get(nextElem))
+				set retVal=retVal_$get(ttTT)_","
+			}
+			else{
+				set retVal=retVal_""""_..makeSafeStr($get(nextElem))_""","
+			}
+		}
+			}catch {}
+				set retVal=$e(retVal,1,*-1)
+				}
+	else {
+		set retVal=$get(str)
+	}
+	q retVal_")"
+]]></Implementation>
+</Method>
+
+<Method name="executeString">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>ns,glob,val,dType</FormalSpec>
+<PublicList>valToSave</PublicList>
+<Implementation><![CDATA[
+	//set str=..decode(str)
+	
+	if ((dType'="l")&&(dType'="r")&&(dType'="b")) throw $$$ERROR("INCORRECT dType")
+	set globalName="^|"""_ns_"""|"_glob
+	set globalVal=val
+
+		if (dType'="b")
+		{
+			if (dType="l")
+			{
+				//set @("^"_globalName_"("_globalIndex_")") =..lbCreate(globalVal)
+				try {set @(globalName) =..listBuilder(globalVal)}
+				catch {throw $$$ERROR("INCORRECT lb")}
+				
+			}
+			else {
+					
+					try{
+						k valToSave
+						//set ^myGlobal = val
+						Set code="Set valToSave = "_val
+						Xecute code
+
+						//set valToSave = @(""_$get(val))
+						
+						set @(globalName) = valToSave} 
+					catch {throw $$$ERROR("INCORRECT val")}
+					}
+		}
+		else {
+			set bitStr=""
+			for i=1:1:$l(globalVal) {set $bit(bitStr,i)=$e(globalVal,i)}
+			try{set @(globalName) =bitStr}catch {throw $$$ERROR("INCORRECT bitstring")}
+	}
+]]></Implementation>
+</Method>
+
+<UDLText name="T">
+<Content><![CDATA[
+/*USELESS BECAUSE OF LIMITS FOR ROUTINE LENGTH
+ClassMethod lbCreate(str As %String) As %String
+{
+	SET src(0)=3
+  	SET src(1)="TestB "
+  	SET src(2)=" set ^str2="_str
+  	SET src(3)=" QUIT"
+  	SET stat=$COMPILE(src,0,errs,,,,"TestB")
+    d ^TestB
+    q ^str2
+}
+*/
+]]></Content>
+</UDLText>
+
+<Method name="nodeToStr">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>queryarr:%String,buffer:%String</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	//set blockWritten=0
+	 if ($$$LV(@queryarr)){
+		 		//Углубляемся в список
+		 		set value=..listToString(@queryarr)
+		 		set tempstr="l"_value
+		        goto Exit
+       	}
+       	else {
+	       try {
+		       //БИТОВАЯ СТРОКА?
+		       if (@queryarr="") throw
+		       set bitString="" 
+	       		for i=1:1:$bitcount(@queryarr) {
+		       		set bitString = bitString_($bit(@queryarr,i)_"")
+	       		} 
+	       		set tempstr="b"_bitString
+	       		}
+	       catch {
+		       //Оставшийся вариант - обычное значение
+		       set tempstr=@queryarr
+		       set tempstr=$replace(tempstr,"""","""""")
+	       set tempstr="r"_""""_tempstr_""""
+	       }
+Exit	      				
+						set firstGround = "_"
+						set lastGround = "_"
+						#define char(%str) """"_firstGround_"$c("_%str_")"_lastGround_""""
+						for i=0:1:31 {set tempstr=$replace(tempstr,$c(i),$$$char(i))}
+						set tempstr=$replace(tempstr,")_""""_(",")_(")
+						set tempstr=$replace(tempstr,"_""""","")
+						set tempstr=$replace(tempstr,"""""_","")
+						
+						//set tempstr=..makeSafeStr(tempstr)
+	       q tempstr
+	        }
+]]></Implementation>
+</Method>
+
+<Method name="Compare">
+<ClassMethod>1</ClassMethod>
+<Implementation><![CDATA[
+	Set g1=$Name(^PROJECT)
+	Set g2=$Name(^|"TEST"|PROJECT)
+	Set res=$Name(^XXX)
+	Set (cnt1,cnt2)=0
+	Kill @res
+	Set i=""
+	For  {
+		Set i=$Order(@g1@(i))
+		If i="" Quit
+		If '$Data(@g2@(i)) Set @res@(1,i)="",cnt1=cnt1+1
+	}
+	Set i=""
+	For  {
+		Set i=$Order(@g2@(i))
+		If i="" Quit
+		If $Data(@g1@(i))'=$data(@g2@(i)) Set @res@(2,i,1)=$get(@g1@(i)), @res@(2,i,2)=$get(@g2@(i)),cnt2=cnt2+1
+	}
+	Write cnt1,!,cnt2
+]]></Implementation>
+</Method>
+
+<Method name="ValueToWord">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pValue</FormalSpec>
+<Implementation><![CDATA[
+ If (pValue<0)||(pValue>65535) Set pValue=0
+ Quit $Extract($ZLChar(pValue),1,2)
+]]></Implementation>
+</Method>
+
+<Method name="WordToValue">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pValue</FormalSpec>
+<Implementation><![CDATA[
+ If $Length(pValue)'=2 Quit 0
+ Quit $ZLASCII(pValue_$Char(0,0))
+]]></Implementation>
+</Method>
+
+<Method name="NameSpaceGlobalList">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>pNameSpace,pMask,pSystemGlobals</FormalSpec>
+<ReturnType>%List</ReturnType>
+<Implementation><![CDATA[
+	set out=$lb()
+	set tick=0
+ 	Set rset=##class(%ResultSet).%New("%SYS.GlobalQuery:NameSpaceList")
+ 	Set sc=rset.Execute(pNameSpace,pMask,pSystemGlobals)
+ 	While (rset.Next()) {
+	
+	set tick=tick+1
+  	Set glb=$Piece(rset.GetData(1),"(",1)
+  	If ('pSystemGlobals)&&($Extract(glb,1,$Length("Ens."))="Ens.") Continue
+  	If (glb'="") {set $list(out,tick)=glb}
+ 	}
+ if ($listdata(out,1))
+  {quit out} 
+  else {quit ""}
+]]></Implementation>
+</Method>
+
+<Method name="makeSafeStr">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>str</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	if ($get(str)="") {q ""}
+	else {q $replace(str,"""","""""")}
+	//На входе - строка абаыащы"аыги"dada
+	//q $replace(str,"""","""""")
+	//На выходе - безопасная строка
+]]></Implementation>
+</Method>
+
+<Method name="listBuilder">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>str</FormalSpec>
+<ReturnType>%String</ReturnType>
+<Implementation><![CDATA[
+	//Собираем $LB из строчки 
+	set listParams=""
+	set listParams=..getParams(str)
+	set ptr=0
+	for j=1:1:$listlength(listParams)
+	{
+		if ($f($list(listParams,j),"$lb")=4) set $list(listParams,j)=..listBuilder($list(listParams,j))
+	}
+	
+	q listParams
+]]></Implementation>
+</Method>
+
+<Method name="findClosingBracket">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>str,pos</FormalSpec>
+<ReturnType>%Numeric</ReturnType>
+<Implementation><![CDATA[
+	set openQuotes=0
+	set openBrackets=0
+	set bWatch=0
+	for i=1:1:$l(str) {
+		//Quotes part
+		if (($e(str,i)=$$$Q)&&(openQuotes=0)){
+			set openQuotes=1
+		}
+		elseif (($e(str,i)=$$$Q)&&(openQuotes=1)&&($e(str,i+1)'=$$$Q)){
+			set openQuotes=0
+		}
+		elseif (($e(str,i)=$$$Q)&&(openQuotes=1)&&($e(str,i+1)=$$$Q)) {
+			//кавычки внутри кавычек - двойные
+			//TOWATCH : а если тройные?)
+			set i=i+2
+		}
+		
+		
+		//Paranthesis part
+		if (($e(str,i)="(")&&(openQuotes=0)){
+			set openBrackets=openBrackets+1
+			if i=pos set bWatch=openBrackets-1
+		}
+		elseif (($e(str,i)=")")&&(openQuotes=0)){
+				
+				set openBrackets=openBrackets-1	
+				if (bWatch=openBrackets) quit			
+			}
+		
+	}
+	q i
+]]></Implementation>
+</Method>
+
+<Method name="getParams">
+<ClassMethod>1</ClassMethod>
+<FormalSpec>str</FormalSpec>
+<ReturnType>%List</ReturnType>
+<Implementation><![CDATA[
+	set params=""
+	set inQuotes=0
+	set curFrom=1
+	//избавляемся от внешних скобок
+	set str= $e(str,$f(str,"("),..findClosingBracket(str,$f(str,"(")-1)-1)
+	set i=1
+	set str=$replace(str,"""""","")
+	for i=1:1:$l(str)
+	{
+		//Quotes part
+		if (($e(str,i)=$$$Q)&&('inQuotes)){
+			set inQuotes=1
+		}
+		elseif (($e(str,i)=$$$Q)&&(inQuotes)&&($e(str,i+1)'=$$$Q)){
+			set inQuotes=0
+		}
+		elseif (($e(str,i)=$$$Q)&&(inQuotes)&&($e(str,i+1)=$$$Q)) {
+			//кавычки внутри кавычек - двойные
+			//TOWATCH : а если тройные?)
+			while($e(str,i+1)=$$$Q){
+				s i=i+1 
+				}
+		}
+		
+		
+		//Paranthesis part
+		if (($e(str,i)="(")&&('inQuotes)){
+			set temp=..findClosingBracket(str,i)
+			if (i<temp) {s i=temp}
+			else {q}
+		}
+		
+		
+		//Comma part
+		
+		if (($e(str,i)=",")&&('inQuotes)){
+			set $list(params,$listlength(params)+1)=$replace($e(str,curFrom,i-1),"""","")
+			set curFrom=i+1
+			
+		}
+		
+
+	}
+	set $list(params,$listlength(params)+1)=$e(str,curFrom,*)
+	
+	q params
+]]></Implementation>
+</Method>
+</Class>
+</Export>
